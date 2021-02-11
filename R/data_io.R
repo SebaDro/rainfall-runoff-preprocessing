@@ -39,3 +39,11 @@ load_catchments_as_sf <- function(path, layer) {
 load_land_cover_rasters <- function(path) {
   raster::raster(path)
 }
+
+# export_timeseries_as_netcdf <- function() {
+#   
+# }
+# 
+# export_land_cover_data <- function(classes) {
+#   
+# }

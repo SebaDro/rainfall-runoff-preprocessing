@@ -1,0 +1,71 @@
+---
+title: "Rainfall-runoff preprocessing"
+output: html_notebook
+---
+
+This [R Markdown](http://rmarkdown.rstudio.com) Notebook guides through several
+processing steps which aim to prepare catchment data as well as precipitation and
+discharge time-series data for rainfall-runoff modeling using Deep Learning. 
+
+First, load basin and subbasin datasets as simple features and a raster dataset
+that contains land cover information
+
+```{r, warning=false}
+source("./R/data_io.R")
+source("./R/preprocess.R")
+source("./R/plot.R")
+
+# Set path to required datasets
+basin_file <- "./data/wv_basin.geojson"
+subbasin_file <- "./data/wv_subbasins.geojson"
+raster_file <- "C:/Users/Sebastian/Documents/Projekte/Promotion/02_GIS/land_cover_wv/u2000_clc1990_v2020_20u1_wv.tif"
+
+# Read catchment polygons and land cover raster
+basin <- load_catchments_as_sf(basin_file)
+subbasins <- load_catchments_as_sf(subbasin_file)
+land_cover <- load_land_cover_rasters(raster_file)
+```
+Next, you can calculate the land cover class frequencies for each of the subbasin
+polygons. For each subbasin 
+1) raster cells from the land cover raster dataset that lie within
+a certain polygon are extracted and
+2) raster cells of identical land cover class will be counted and the relative
+frequency of each class calculated.
+
+After processing, we check if the relative land cover class frequency for each
+catchment sums up to 1.
+
+```{r, warning=false}
+# Calculate the land cover class frequencies for each catchment
+res <- calculate_land_cover_frequency(subbasins, land_cover, TRUE)
+
+# The relative class frequency for each catchment sums up to 1 should
+# be TRUE.
+if (res %>%
+    group_by(id) %>%
+    summarise(sum = sum(freq)) %>%
+    filter(sum != 1) %>% nrow() == 0) {
+  print("Land cover classes have been calculated properly for each catchment!")
+} else {
+  print("Ralative land cover classes does not sums up to 1 for one of the catchments!")
+}
+```
+
+The resulting dataset contains for each combination of a subbasin and the land
+cover classes that lie within the subbasin's polygon a separate entry. Hence, you
+will notice multiple entries for a single subbasin, each one holds the absolute count
+of raster cells of a certain class and the relative frequency.
+```{r}
+head(res)
+```
+
+Finally, we can select a single catchment and plot its land cover class frequency.
+```{r}
+# Select a catchment and plot its landcover class frequencies
+subbasin <- subbasins %>% filter(id == c(100060))
+landcover_classes <- res %>% filter(id == c(100060))
+
+plot_landcover_frequency(basin, subbasin, landcover_classes, "bar")
+
+```
+

@@ -4,7 +4,8 @@ library(gridExtra)
 plot_landcover_frequency <- function(ezg, catchment, classes, type) {
   p1 <- ggplot() +
     geom_sf(data = ezg) +
-    geom_sf(data = catchment, aes(fill = name))
+    geom_sf(data = catchment, aes(fill = name)) + 
+    labs(title= "Location of the subbasin within the Wupper area")
   
   if (type == "pie") {
     p2 <- create_piechart(classes)  
@@ -28,7 +29,7 @@ create_piechart <- function(classes) {
 create_barchart <- function(classes) {
   ggplot(classes, aes(x = class, y = freq * 100, fill = class)) +
     geom_bar(stat = "identity") +
-    labs(x = "", y = "") +
+    labs(title= "Relative frequency of land cover classes for a subbasin", x = "land cover class", y = "relative frequency [%]") +
     geom_text(aes(label = paste0(round(freq * 100), "%")), position = position_stack(vjust = 0.5)) +
     coord_flip()
 }

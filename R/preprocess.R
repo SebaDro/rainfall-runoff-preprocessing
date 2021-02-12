@@ -35,3 +35,36 @@ calculate_land_cover_frequency <- function(polygons, raster, join) {
     table
   }
 }
+
+#' Prepares a vendor specific discharge timeseries dataset to be analyze ready
+#'
+#' @param data dataset that contains discharge timeseries data and gauge metadata
+#' in a weird format
+#'
+#' @return list which contains a gauge metadata data frame and discharge timeseries
+#' data frame
+prepare_wv_discharge_data <- function(data) {
+  # First split datatset into gauge metadata and timeseries data
+  timeseries <- data[10:nrow(data), ]
+  meta <- t(data[1:9, ])
+  
+  # Prepare metadata column names
+  colnames(meta) <- meta[1,]
+  rownames(meta) <- NULL
+  meta <- meta[-1,]
+  
+  # Prepare timeseries column names
+  colnames(timeseries)[2:ncol(timeseries)] <- meta[,"Name"]
+  colnames(timeseries)[1] <- "date"
+  
+  # Convert date strings to POSIXct
+  timeseries[,"date"] <- as.POSIXct(timeseries[,"date"], format = "%d.%m.%Y %H:%M:%OS")
+  
+  # Convert string numbers to decimals
+  timeseries[, 2:ncol(timeseries)] <- apply(timeseries[, 2:ncol(timeseries)], 2,
+                                            function(x)
+                                              as.numeric(gsub(",", ".",
+                                                              gsub(" ", "", x, fixed = TRUE))))
+  
+  list(meta, timeseries)
+}

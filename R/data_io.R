@@ -1,5 +1,7 @@
 library(raster)
 library(sf)
+library(tidyverse)
+library(stars)
 
 #' Loads catchment datasets from a spatial data source
 #'
@@ -54,4 +56,42 @@ load_timeseries_data <- function(metadata_path, timeseries_path) {
   read_csv(timeseries_file) %>%
     gather(key = "ID", "discharge", -date) %>% 
     left_join(metadata, by = c("ID"))
+}
+
+load_regnie_as_stars <- function(files){
+  x_delta <- 1 / 60
+  y_delta <- 1 / 120
+  
+  x_offset <- (6 - 10 * x_delta) - x_delta / 2
+  y_offset <- (55 + 10 * y_delta) + y_delta / 2
+  
+  crs <- st_crs(4326)
+  
+  res <- NULL
+  
+  for (f in files) {
+    values <- read_fwf(
+      f,
+      col_positions = fwf_widths(rep(4, 611)),
+      na = c("-999"),
+      col_types = cols(.default = col_integer()),
+      n_max = 971
+    )
+    
+    m <- t(as.matrix(values))
+    res <- c(res, m)
+  }
+  
+  a <- array(res, dim = c(x = 611, y = 971, date = length(files)))
+  data <- st_as_stars("precipitation" = a)
+  
+  data %>%
+    st_set_dimensions("x",
+                      offset = x_offset,
+                      delta = x_delta,
+                      refsys = crs) %>%
+    st_set_dimensions("y",
+                      offset = y_offset,
+                      delta = -y_delta,
+                      refsys = crs)
 }

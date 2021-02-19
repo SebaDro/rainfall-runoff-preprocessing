@@ -40,10 +40,18 @@ load_land_cover_rasters <- function(path) {
   raster::raster(path)
 }
 
-# export_timeseries_as_netcdf <- function() {
-#   
-# }
-# 
-# export_land_cover_data <- function(classes) {
-#   
-# }
+
+#' Loads timeseries data for discharge gauges from two CSV files, containing
+#' gauge metadata and the timeseries data. Both datasets will be joined and
+#' returned as tibble.
+#'
+#' @param metadata_path path to the metadata CSV file
+#' @param timeseries_path path to the timeseries CSV file 
+#'
+#' @return a tibble containing bot, gauge metadata and discharge timeseries
+load_timeseries_data <- function(metadata_path, timeseries_path) {
+  metadata <- read_csv(metadata_file, col_types = cols(ID = col_character()))
+  read_csv(timeseries_file) %>%
+    gather(key = "ID", "discharge", -date) %>% 
+    left_join(metadata, by = c("ID"))
+}

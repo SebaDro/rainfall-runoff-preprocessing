@@ -2,6 +2,7 @@ library(raster)
 library(sf)
 library(tidyverse)
 library(stars)
+library(tools)
 
 #' Loads catchment datasets from a spatial data source
 #'
@@ -63,38 +64,61 @@ load_timeseries_data <- function(metadata_path, timeseries_path) {
 #' For more information about DWD REGNIE data see: https://www.dwd.de/DE/leistungen/regnie/regnie.html
 #'
 #' @param files a data frame with dates in the first column and the paths to
-#' the REGNIE raster file in the second column.
+#' the REGNIE raster files (either compressed with file ending .gz or uncompressed)
+#' in the second column.
 #'
 #' @return a stars object which holds one precipitation attribute and the
 #' dimensions x, y and date
 load_regnie_as_stars <- function(files){
-
+  n_files <- nrow(files)
+  cat(sprintf("Start reading %s REGNIE raster files as stars\n", n_files))
+  
+  # Set coordinates delta and offset as defined in
+  # in the DWD REGNIE format description 
   x_delta <- 1 / 60
   y_delta <- 1 / 120
-  
   x_offset <- (6 - 10 * x_delta) - x_delta / 2
   y_offset <- (55 + 10 * y_delta) + y_delta / 2
   
   crs <- st_crs(4326)
   
   res <- NULL
+  dates <- integer(0)
+  class(dates) <- "Date"
   
-  for (f in files[,2]) {
-    values <- read_fwf(
-      f,
-      col_positions = fwf_widths(rep(4, 611)),
-      na = c("-999"),
-      col_types = cols(.default = col_integer()),
-      n_max = 971
+  for (i in 1:nrow(files)) {
+    f <- files[i,2]
+    tryCatch(
+      {
+        # Read raster values from ASCII files as fixed width files
+        values <- read_fwf(
+          f,
+          col_positions = fwf_widths(rep(4, 611)),
+          na = c("-999"),
+          col_types = cols(.default = col_integer()),
+          n_max = 971
+        )
+
+        # Transpose raster matrix to match stars coordinate axis dimensions
+        m <- t(as.matrix(values))
+        res <- c(res, m)
+        
+        dates <- c(dates, files[i,1])
+        
+        cat(sprintf('\r %s %% completed', paste0(round(i / n_files * 100))))
+        
+      }, error = function(c) {
+        message(sprintf("Could not create star object for file %s.\n%s", f, c))
+      }
     )
-    
-    m <- t(as.matrix(values))
-    res <- c(res, m)
   }
   
-  a <- array(res, dim = c(x = 611, y = 971, date = length(files)))
+  # Create a stars object with attribute 'precipitation' and
+  # dimensions 'x', 'y' and 'date'
+  a <- array(res, dim = c(x = 611, y = 971, date = length(dates)))
   data <- st_as_stars("precipitation" = a)
   
+  # Set dimensions of stars objects using DWD REGNIE coordinates delta and offset
   data %>%
     st_set_dimensions("x",
                       offset = x_offset,
@@ -105,6 +129,7 @@ load_regnie_as_stars <- function(files){
                       delta = -y_delta,
                       refsys = crs) %>% 
     st_set_dimensions("date",
-                      values = files[,1],
+                      values = dates,
                       names = "date")
+}
 }

@@ -58,7 +58,17 @@ load_timeseries_data <- function(metadata_path, timeseries_path) {
     left_join(metadata, by = c("ID"))
 }
 
+#' Loads several DWD REGNIE raster files with daily precipitation data into a 
+#' stars object.
+#' For more information about DWD REGNIE data see: https://www.dwd.de/DE/leistungen/regnie/regnie.html
+#'
+#' @param files a data frame with dates in the first column and the paths to
+#' the REGNIE raster file in the second column.
+#'
+#' @return a stars object which holds one precipitation attribute and the
+#' dimensions x, y and date
 load_regnie_as_stars <- function(files){
+
   x_delta <- 1 / 60
   y_delta <- 1 / 120
   
@@ -69,7 +79,7 @@ load_regnie_as_stars <- function(files){
   
   res <- NULL
   
-  for (f in files) {
+  for (f in files[,2]) {
     values <- read_fwf(
       f,
       col_positions = fwf_widths(rep(4, 611)),
@@ -93,5 +103,8 @@ load_regnie_as_stars <- function(files){
     st_set_dimensions("y",
                       offset = y_offset,
                       delta = -y_delta,
-                      refsys = crs)
+                      refsys = crs) %>% 
+    st_set_dimensions("date",
+                      values = files[,1],
+                      names = "date")
 }

@@ -132,4 +132,28 @@ load_regnie_as_stars <- function(files){
                       values = dates,
                       names = "date")
 }
+
+#' Creates a list of absolute paths to DWD REGNIE raster files inside a 
+#' folder which contains all daily raster files for a single year
+#'
+#' @param path path to the folder containing the daily raster files for a
+#' a single year
+#'
+#' @return data frame which contains the dates of the raster files in the first
+#' column and the corresponding file paths in the second column
+create_regnie_file_list <- function(path) {
+  year <- path %>% 
+    basename() %>% 
+    substr(3, 6)
+  
+  files <- list.files(path, full.names = TRUE, pattern = "\\.gz$")
+  
+  dates <- files %>%
+    basename() %>% 
+    file_path_sans_ext() %>% 
+    substr(5,8) %>%
+    paste0(year) %>% 
+    as.Date("%m%d%y")
+  
+  data.frame(dates = dates, files = files)
 }

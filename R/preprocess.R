@@ -68,3 +68,38 @@ prepare_wv_discharge_data <- function(data) {
   
   list(meta, timeseries)
 }
+
+calculate_precipitation_means_chunkwise <- function(files, features, chunks){
+  n <- nrow(files)
+  
+  sequences <- seq(0, n, chunks)
+  if(!(n %in% sequences)) {
+    sequences <- c(sequences, n) 
+  }
+  
+  table = data.frame()
+  
+  for(i in 1:(length(sequences) - 1)) {
+    i_start <-  sequences[i] + 1
+    i_end <- sequences[i + 1]
+    
+    cat(sprintf("\nStart reading REGNIE raster files %s to %s \n", i_start, i_end))
+    stars <- load_regnie_as_stars(files[i_start:i_end,])
+    means <- calculate_precipitation_means(stars, subbasins)
+    
+    table <- table %>% bind_rows(means)
+  }
+  table
+}
+
+calculate_precipitation_means <- function(stars, features){
+  table = data.frame()
+  for (i in 1:nrow(features)) {
+    feature <- features[i,]
+    means <-
+      as.data.frame(st_apply(suppressMessages(stars[feature]), c("date"), mean, na.rm = TRUE)) %>%
+      add_column(catchment_id = pull(features[i, ], id))
+    table <- table %>% bind_rows(means)
+  }
+  table %>% arrange(date)
+}

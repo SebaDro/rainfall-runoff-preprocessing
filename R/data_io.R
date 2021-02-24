@@ -71,7 +71,6 @@ load_timeseries_data <- function(metadata_path, timeseries_path) {
 #' dimensions x, y and date
 load_regnie_as_stars <- function(files){
   n_files <- nrow(files)
-  cat(sprintf("Start reading %s REGNIE raster files as stars\n", n_files))
   
   # Set coordinates delta and offset as defined in
   # in the DWD REGNIE format description 
@@ -133,27 +132,32 @@ load_regnie_as_stars <- function(files){
                       names = "date")
 }
 
-#' Creates a list of absolute paths to DWD REGNIE raster files inside a 
-#' folder which contains all daily raster files for a single year
+#' Creates a list of absolute paths to DWD REGNIE raster files inside folders 
+#' each one containing daily raster files for whole year
 #'
-#' @param path path to the folder containing the daily raster files for a
-#' a single year
+#' @param path paths to the folders containing the daily raster files
 #'
 #' @return data frame which contains the dates of the raster files in the first
 #' column and the corresponding file paths in the second column
-create_regnie_file_list <- function(path) {
-  year <- path %>% 
-    basename() %>% 
-    substr(3, 6)
+create_regnie_file_list <- function(paths) {
+  table <- data.frame()
   
-  files <- list.files(path, full.names = TRUE, pattern = "\\.gz$")
-  
-  dates <- files %>%
-    basename() %>% 
-    file_path_sans_ext() %>% 
-    substr(5,8) %>%
-    paste0(year) %>% 
-    as.Date("%m%d%y")
-  
-  data.frame(dates = dates, files = files)
+  for (path in paths) {
+    year <- path %>% 
+      basename() %>% 
+      substr(3, 6)
+    
+    files <- list.files(path, full.names = TRUE, pattern = "\\.gz$")
+    
+    dates <- files %>%
+      basename() %>% 
+      file_path_sans_ext() %>% 
+      substr(5,8) %>%
+      paste0(year) %>% 
+      as.Date("%m%d%Y")
+    
+    table <- table %>%
+      bind_rows(data.frame(dates = dates, files = files))
+  }
+  table
 }

@@ -18,7 +18,7 @@ source("./R/plot.R")
 # Set path to required datasets
 basin_file <- "./data/wv_basin.geojson"
 subbasin_file <- "./data/wv_subbasins.geojson"
-raster_file <- "C:/Users/Sebastian/Documents/Projekte/Promotion/02_GIS/land_cover_wv/u2000_clc1990_v2020_20u1_wv.tif"
+raster_file <- "./data/land_cover.tif"
 
 # Read catchment polygons and land cover raster
 basin <- load_catchments_as_sf(basin_file)

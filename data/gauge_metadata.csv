@@ -1,0 +1,8 @@
+"ID","Name","Station","Unterbezeichnung","Parameter","Einheit","Aussage","Version","Blockung","Intervallseite"
+"100050","Hückeswagen","SHUE","HR_W","Abfluss","m³","Sum","0","1d","Links"
+"100044","Stöcken H","SKIE","HR_W","Abfluss","m³","Sum","0","1d","Links"
+"100057","Kluserbrücke","SKLU","HR_W","Abfluss","m³","Sum","0","1d","Links"
+"100064","Manfort","SMAN","","Abfluss","m³","Sum","1","1d","Links"
+"100051","Müllensiepen H","SMUH","HR_W","Abfluss","m³","Sum","0","1d","Links"
+"100072","Neumühle","SNEM","HR_Q","Abfluss","m³","Sum","0","1d","Links"
+"100063","Opladen","SOPL","HR_Q","Abfluss","m³","Sum","0","1d","Links"

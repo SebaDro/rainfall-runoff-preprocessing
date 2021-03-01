@@ -36,8 +36,9 @@ After processing, we check if the relative land cover class frequency for each
 catchment sums up to 1.
 
 ```{r, warning=false}
-# Calculate the land cover class frequencies for each catchment
-res <- calculate_land_cover_frequency(subbasins, land_cover, TRUE)
+# Calculate the land cover class frequencies for a selected catchment
+subbasin <- subbasins %>% filter(id == c(100060))
+res <- calculate_land_cover_frequency(subbasin, land_cover, TRUE)
 
 # The relative class frequency for each catchment sums up to 1 should
 # be TRUE.
@@ -61,11 +62,57 @@ head(res)
 
 Finally, we can select a single catchment and plot its land cover class frequency.
 ```{r}
-# Select a catchment and plot its landcover class frequencies
-subbasin <- subbasins %>% filter(id == c(100060))
+# Plot the landcover class frequencies
 landcover_classes <- res %>% filter(id == c(100060))
 
 plot_landcover_frequency(basin, subbasin, landcover_classes, "bar")
 
 ```
+Next, we want to determine the mean daily precipitation per day for each subbasin
+over several years. To do so, we use the REGNIE dataset from DWD (German Weather
+Service). The DWD provides the REGNIE dataset in different resolutions: daily,
+monthly and annual. However, for our studies we require precipitation timeseries
+on a daily scale. Since this project does not come with REGNIE datasets, you have
+to fetch a certain dataset on your own. Please, download one of the TAR-archives
+that contains ASCII raster files with daily precipitation for a whole year from 
+the DWD FTP server (ftp://opendata.dwd.de/climate_environment/CDC/grids_germany/daily/regnie/),
+unzip it and adjust the first two lines in the following code block
+```{r}
+# Absolute path to the base directory, which contains one or more folders that
+# hold the daily REGNIE precipitation data
+base_path <- "/path/to/regnie/data/" # must be absolute
+year <- 2020
 
+path <- paste0(base_path, "ra", 2020, "m")
+```
+Next, with a single path (or multiple paths) we are able to create a list of
+absolute paths to all single ASCII files within a single (or multiple) annual 
+folder. With those paths, we load the REGNIE datasets as a multidimensional
+stars object with three dimensions _x_, _y_ and _date_. Finally, let's plot
+a small subset of our timeseries raster dataset.
+```{r}
+# Read all files from a directory that contains the REGNIE files for a certain year
+files <- create_regnie_file_list(path)
+# Load REGNIE raster files as stars for a subset
+stars <- load_regnie_as_stars(files[1:10,])
+plot(stars)
+```
+
+With the spatio-temporal raster objects, we now can calculate the daily mean
+precipitation for single basins. Be sure, that the subbasin feature and the stars
+object have the same CRS. The function `calculate_precipitation_means`
+crops the stars object by the use of the subbasin's polygon and aggregates
+all raster cells that lie within the polygon to the mean along the date
+dimension. This results in a data frame containin a timeseries with daily
+mean precipitation for a certain catchment. 
+```{r}
+subbasin <- subbasins %>% filter(id == c(100060)) %>% st_transform(st_crs(stars))
+
+precipitation <- calculate_precipitation_means(stars, subbasin)
+precipitation <- precipitation %>% rename(precipitation = mean)
+
+ggplot(data = precipitation, (aes(x = date, y = precipitation, color = catchment_id))) + 
+  geom_point() +
+  geom_smooth() +
+  labs(y = "mean precipitation\n[1/10 mm]", title = "mean precipitation/day per catchment")
+```

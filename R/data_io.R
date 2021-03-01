@@ -54,7 +54,7 @@ load_land_cover_rasters <- function(path) {
 #' @return a tibble containing bot, gauge metadata and discharge timeseries
 load_timeseries_data <- function(metadata_path, timeseries_path) {
   metadata <- read_csv(metadata_file, col_types = cols(ID = col_character()))
-  read_csv(timeseries_file) %>%
+  read_csv(timeseries_file, comment = "#") %>%
     gather(key = "ID", "discharge", -date) %>% 
     left_join(metadata, by = c("ID"))
 }

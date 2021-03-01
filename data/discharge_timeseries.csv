@@ -1,3 +1,5 @@
+# Except the first column, a single column contains the mean daily discharge timeseries for a single basin and the column name holds the basin ID.
+# Unit for discharge values is m^3.
 "date","100050","100044","100057","100064","100051","100072","100063"
 1990-01-01,119519.992188,7219.653809,379407.25,119391.6875,6834.352051,24233.222656,742765.875
 1990-01-02,111231.898438,6568.626953,360288,110898.648438,6247.899414,22007.511719,729277.5625

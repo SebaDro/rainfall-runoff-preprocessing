@@ -1,6 +1,4 @@
-source("./R/data_io.R")
-source("./R/preprocess.R")
-source("./R/plot.R")
+source("./R/setup.R")
 
 # Set path to required datasets
 basin_file <- "./data/wv_basin.geojson"
@@ -27,4 +25,3 @@ subbasin <- subbasins %>% filter(id == c(100060))
 landcover_classes <- res %>% filter(id == c(100060))
 
 plot_landcover_frequency(basin, subbasin, landcover_classes, "bar")
-

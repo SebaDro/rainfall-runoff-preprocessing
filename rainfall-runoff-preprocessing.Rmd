@@ -11,9 +11,7 @@ First, load basin and subbasin datasets as simple features and a raster dataset
 that contains land cover information
 
 ```{r, warning=false}
-source("./R/data_io.R")
-source("./R/preprocess.R")
-source("./R/plot.R")
+source("./R/setup.R")
 
 # Set path to required datasets
 basin_file <- "./data/wv_basin.geojson"

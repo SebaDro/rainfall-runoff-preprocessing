@@ -3,6 +3,7 @@ library(sf)
 library(tidyverse)
 library(stars)
 library(tools)
+library(ncdf4)
 
 #' Loads catchment datasets from a spatial data source
 #'
@@ -146,4 +147,64 @@ create_regnie_file_list <- function(paths) {
       bind_rows(data.frame(dates = dates, files = files))
   }
   table
+}
+
+#' Creates multiple NetCDF files from, each one containing discharge and precipitation
+#' timeseries data for a single catchment
+#'
+#' @param data tibble or data frame containing the timeseries data for several
+#' catchments
+#' @param id_attr name of the catchment ID attribute
+#' @param date_attr name of the dates attribute
+#' @param prec_attr name of the precipitation attribute
+#' @param discharge_attr name of the discharge attribute
+#' @param out_path path of directory to write the NetCDF files to
+#'
+#' @return void
+save_timeseries_as_netcdf <- function(data, id_attr, date_attr, prec_attr, discharge_attr, out_path) {
+  
+  # iterate over single catchments in order to create a separate NetCDF file
+  # for each catchment
+  for (id in pull(distinct(data[id_attr]), id_attr)) {
+    single_basin_data <- data %>% filter(catchment_id == id)
+    
+    dates <- single_basin_data %>% pull(date)
+    prec_values <- single_basin_data %>% pull(prec_attr)
+    discharge_values <- single_basin_data %>% pull(discharge_attr)
+    
+    # define date as only dimension
+    time_units <- paste0("days since ", dates[1])
+    date_values <- as.numeric(dates[] - dates[1])
+    timedim <- ncdim_def("date", time_units, date_values)
+    
+    # variable definitions for precipitation and discharge
+    precipitation_def <-
+      ncvar_def(
+        name = "precipitation",
+        units = "mm/d",
+        dim = list(timedim),
+        longname = "mean precipitation [mm] per day",
+        prec = "float"
+      )
+    discharge_def <-
+      ncvar_def(
+        name = "discharge",
+        units = "m^3/d",
+        dim = list(timedim),
+        longname = "daily discharge [m^3]",
+        prec = "float"
+      )
+    
+    # create NetCDF file
+    filename <- paste0(out_path, id, ".nc")
+    ncdf_file <-
+      nc_create(filename, list(precipitation_def, discharge_def), force_v4 = TRUE)
+    
+    # write out timeseries values and close file
+    ncvar_put(ncdf_file, precipitation_def, prec_values)
+    ncvar_put(ncdf_file, discharge_def, discharge_values)
+    
+    nc_close(ncdf_file)
+  }
+  
 }

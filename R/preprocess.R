@@ -4,36 +4,50 @@ library(sf)
 
 #' Calculates the relative frequency of land cover classes for catchments
 #'
-#' @param polygons Catchments as SpatialPolygons from package sf or sp
-#' @param raster A Raster object with land cover class cells
+#' @param feature Catchments as SpatialPolygons or Features from package sf or sp
+#' @param raster A Raster or Stars object with land cover class cells
 #' @param join Indicates whether to join the frequency statistic to the
 #' catchment polygons or to return the frequency statistics only as data frame
 #'
 #' @return Either the catchment poylgons including the frequency statistics or
 #' a data frame that holds the frequency statistics
-#' @export
-#'
-#' @examples
-calculate_land_cover_frequency <- function(polygons, raster, join) {
-  table = data.frame()
-  for (i in 1:nrow(polygons)) {
-    # Extract cells from the raster that fall within a catchment polygon
-    cells <- raster::extract(raster, polygons[i,], df = FALSE)
-    # Calculate the relative frequency of each land cover class for a
-    # catchment and create a dataframe that contains the calculated statistics
-    # as well as the catchment ID
-    clc_freq <-
-      as.data.frame(table(class = cells[[1]]), responseName = "count") %>%
-      mutate(freq = count / length(cells[[1]]),
-             catchment_id = pull(polygons[i,], id))
-    # Add to result table
-    table <- rbind(table, clc_freq)
-  }
-  if (join) {
-    left_join(polygons, table, by = c("id" = "catchment_id"))
-  } else {
-    table
-  }
+calculate_land_cover_frequency <- function(features, raster, join) {
+    res <- NULL
+    
+    if (is(raster, "RasterLayer")) {
+      for (i in 1:nrow(features)) {
+        cells <- raster::extract(raster, features[i, ], df = FALSE)
+        table <- as_tibble_col(cells[[1]], column_name = "class") %>%
+          drop_na() %>%
+          count(class, name = "count") %>%
+          mutate(freq = count / sum(count)) %>%
+          mutate(catchment_id = features[i, ]$id)
+        
+        res <- bind_rows(res, table)
+      }
+    }
+    else if (is(raster, "stars")) {
+      for (i in 1:nrow(features)) {
+        table <- raster[features[i, ]] %>%
+          setNames(c("class")) %>%
+          as_tibble() %>%
+          drop_na() %>%
+          count(class, name = "count") %>%
+          mutate(freq = count / sum(count)) %>%
+          mutate(catchment_id = features[i, ]$id)
+        
+        res <- bind_rows(res, table)
+      }
+    }
+    else{
+      stop(sprintf("Raster object is none of the supported type: %s, %s", "RasterLayer", "stars"))
+    }
+    
+    if (join) {
+      left_join(features, res, by = c("id" = "catchment_id"))
+    } else {
+      res
+    }
 }
 
 #' Prepares a vendor specific discharge timeseries dataset to be analyze ready

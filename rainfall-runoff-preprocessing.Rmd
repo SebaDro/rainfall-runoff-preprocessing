@@ -8,7 +8,8 @@ processing steps which aim to prepare catchment data as well as precipitation an
 discharge time-series data for rainfall-runoff modeling using Deep Learning. 
 
 First, load basin and subbasin datasets as simple features and a raster dataset
-that contains land cover information
+that contains land cover information. We also have to be sure that he raster
+dataset and the subbasin features have the same CRS.
 
 ```{r, warning=false}
 source("./R/setup.R")
@@ -22,6 +23,10 @@ raster_file <- "./data/land_cover.tif"
 basin <- load_catchments_as_sf(basin_file)
 subbasins <- load_catchments_as_sf(subbasin_file)
 land_cover <- load_land_cover_rasters(raster_file)
+
+if(st_crs(subbasins) != st_crs(land_cover)) {
+  subbasins <- st_transform(subbasins, st_crs(land_cover))    
+}
 ```
 Next, you can calculate the land cover class frequencies for each of the subbasin
 polygons. For each subbasin 

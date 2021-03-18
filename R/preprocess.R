@@ -2,26 +2,32 @@ library(dplyr)
 library(raster)
 library(sf)
 
-#' Calculates the relative frequency of land cover classes for catchments
+#' Calculates the relative frequency of land cover classes for spatial features
 #'
-#' @param feature Catchments as SpatialPolygons or Features from package sf or sp
+#' @param features Features as SpatialPolygons or Features from package sf or sp
 #' @param raster A Raster or Stars object with land cover class cells
+#' @param id_col Name of the features column that contains the identifiers.
+#' Default 'id'.
 #' @param join Indicates whether to join the frequency statistic to the
 #' catchment polygons or to return the frequency statistics only as data frame
+#'Default TRUE
 #'
 #' @return Either the catchment poylgons including the frequency statistics or
 #' a data frame that holds the frequency statistics
-calculate_land_cover_frequency <- function(features, raster, join) {
+calculate_land_cover_frequency <- function(features, raster, id_col="id", join=FALSE) {
     res <- NULL
+    n_features <- nrow(features)
     
     if (is(raster, "RasterLayer")) {
       for (i in 1:nrow(features)) {
+        cat(sprintf("\r Calculate land cover classes for subbasin %s. %s%% completed", pull(features[i,], id_col), paste0(round(i / n_features * 100))))
         cells <- raster::extract(raster, features[i, ], df = FALSE)
         table <- as_tibble_col(cells[[1]], column_name = "class") %>%
           drop_na() %>%
           count(class, name = "count") %>%
           mutate(freq = count / sum(count)) %>%
-          mutate(catchment_id = features[i, ]$id)
+          mutate(catchment_id = pull(features[i,], id_col))
+          # mutate(catchment_id = features[i, ]$id)
         
         res <- bind_rows(res, table)
       }
@@ -29,13 +35,15 @@ calculate_land_cover_frequency <- function(features, raster, join) {
     else if (is(raster, "stars")) {
       for (i in 1:nrow(features)) {
         ## st_as_stars needs to be called, if raster ist a stars proxy object
+        cat(sprintf("\r Calculate land cover classes for subbasin %s. %s%% completed", pull(features[i,], id_col), paste0(round(i / n_features * 100))))
         table <- st_as_stars(raster[features[i, ]]) %>%
           setNames(c("class")) %>%
           as_tibble() %>%
           drop_na() %>%
           count(class, name = "count") %>%
           mutate(freq = count / sum(count)) %>%
-          mutate(catchment_id = features[i, ]$id)
+          mutate(catchment_id = pull(features[i,], id_col))
+          # mutate(catchment_id = features[i, ]$id)
         
         res <- bind_rows(res, table)
       }
@@ -45,7 +53,7 @@ calculate_land_cover_frequency <- function(features, raster, join) {
     }
     
     if (join) {
-      left_join(features, res, by = c("id" = "catchment_id"))
+      left_join(features, res, setNames("catchment_id", id_col))
     } else {
       res
     }

@@ -2,16 +2,25 @@ source("./R/setup.R")
 
 # Parameters
 output_path <- "./output/" # output path to save results
+res_file_suff <- "wv"
 subbasin_file <- "./data/wv_subbasins.geojson"
-raster_paths <- c("./data/clc1990.tif", "./data/clc2000.tif", "./data/clc2006.tif",
-                  "./data/clc2012.tif", "./data/clc2018.tif")
+
+# TODO Download CORINE Land Cover from https://land.copernicus.eu/pan-european/corine-land-cover
+# and copy the annual GeoTIFF files to the './data' folder
+raster_paths <- c("./data/U2018_CLC2018_V2020_20u1.tif",
+                  "./data//U2018_CLC2012_V2020_20u1.tif",
+                  "./data//U2012_CLC2006_V2020_20u1.tif",
+                  "./data//U2006_CLC2000_V2020_20u1.tif",
+                  "./data//U2006_CLC2000_V2020_20u1.tif")
+subbasins <- load_catchments_as_sf(subbasin_file, "CAMELS_GB_catchment_boundaries")
+id_col <- "ID"
+
 class_config_file <- "./config/clc-codelist.csv"
 fill_missing_classes <- TRUE
 
-subbasins <- load_catchments_as_sf(subbasin_file)
 
 for (path in raster_paths) {
-  cat(sprintf("\nStart processing raster file %s", path))
+  cat(sprintf("\nStart processing raster file %s \n", path))
   land_cover <- read_stars(path)
   
   # Check if both, the raster data and the features/polygons have the same CRS.
@@ -21,7 +30,7 @@ for (path in raster_paths) {
   }
   
   res_tmp <-
-    calculate_land_cover_frequency(subbasins, land_cover, FALSE)
+    calculate_land_cover_frequency(subbasins, land_cover, id_col, FALSE)
   
   res <- res_tmp %>% pivot_wider(
     id_cols = catchment_id,
@@ -45,7 +54,7 @@ for (path in raster_paths) {
     relocate(catchment_id, intersect(codes, names(res))) %>%
     mutate(across(1:ncol(res), round, 4))
   
-  out_file <- paste0(output_path, file_path_sans_ext(basename(path)), ".csv")
+  out_file <- paste0(output_path, file_path_sans_ext(basename(path)), "_", res_file_suff, ".csv")
   write_csv(res, out_file)
-  cat(sprintf("\nSuccesfully wrote result to %s\n", out_file))
+  cat(sprintf("/nSuccesfully wrote result to %s\n", out_file))
 }

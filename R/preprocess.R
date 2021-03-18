@@ -28,7 +28,8 @@ calculate_land_cover_frequency <- function(features, raster, join) {
     }
     else if (is(raster, "stars")) {
       for (i in 1:nrow(features)) {
-        table <- raster[features[i, ]] %>%
+        ## st_as_stars needs to be called, if raster ist a stars proxy object
+        table <- st_as_stars(raster[features[i, ]]) %>%
           setNames(c("class")) %>%
           as_tibble() %>%
           drop_na() %>%

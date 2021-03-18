@@ -27,7 +27,6 @@ calculate_land_cover_frequency <- function(features, raster, id_col="id", join=F
           count(class, name = "count") %>%
           mutate(freq = count / sum(count)) %>%
           mutate(catchment_id = pull(features[i,], id_col))
-          # mutate(catchment_id = features[i, ]$id)
         
         res <- bind_rows(res, table)
       }
@@ -92,6 +91,15 @@ prepare_wv_discharge_data <- function(data) {
   list(meta, timeseries)
 }
 
+#' Wrapper function to calculate precipitation means chunkwise for a large list
+#' of REGNIE raster files.
+#' 
+#' @param files List of REGNIE raster files
+#' @param features Features to calculate precipitation means for
+#' @param chunks List of raster files will be split into chunks of this size
+#'
+#' @return DataFrame that contains the time indexed precipitation means for all REGNIE
+#' raster files and each feature
 calculate_precipitation_means_chunkwise <- function(files, features, chunks){
   n <- nrow(files)
   
@@ -115,6 +123,17 @@ calculate_precipitation_means_chunkwise <- function(files, features, chunks){
   table
 }
 
+#' Calculates the mean precipitation for spatial features from a Stars object that
+#' holds a raster dataset of precipitation values.
+#' For each feature those raster cells that lie within the features boundary
+#' will be selected and the mean over all selected raster cell will be calculated.
+#'
+#' @param stars Stars object with with three dimensions _x_, _y_ and _date_ and
+#' _precipitation_ as parameter.
+#' @param features Features as SpatialPolygons or Features from package sf or sp
+#'
+#' @return DataFrame that contains the time indexed precipitation means for each
+#' feature
 calculate_precipitation_means <- function(stars, features){
   table = data.frame()
   for (i in 1:nrow(features)) {

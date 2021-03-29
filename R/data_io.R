@@ -161,26 +161,34 @@ create_regnie_file_list <- function(paths) {
 #' @param out_path path of directory to write the NetCDF files to
 #'
 #' @return void
-save_timeseries_as_netcdf <- function(data, id_attr, date_attr, prec_attr, discharge_attr, out_path) {
+save_timeseries_as_netcdf <- function(data,
+                                      out_path,
+                                      id_col,
+                                      date_col = "date",
+                                      date_dim = "date",
+                                      prec_col = "precipitation",
+                                      prec_dim = "precipitation",
+                                      discharge_col = "discharge",
+                                      discharge_dim = "discharge") {
   
   # iterate over single catchments in order to create a separate NetCDF file
   # for each catchment
-  for (id in pull(distinct(data[id_attr]), id_attr)) {
+  for (id in pull(distinct(data[id_col]), id_col)) {
     single_basin_data <- data %>% filter(catchment_id == id)
     
     dates <- single_basin_data %>% pull(date)
-    prec_values <- single_basin_data %>% pull(prec_attr)
-    discharge_values <- single_basin_data %>% pull(discharge_attr)
+    prec_values <- single_basin_data %>% pull(prec_col)
+    discharge_values <- single_basin_data %>% pull(discharge_col)
     
     # define date as only dimension
     time_units <- paste0("days since ", dates[1])
     date_values <- as.numeric(dates[] - dates[1])
-    timedim <- ncdim_def("date", time_units, date_values)
+    timedim <- ncdim_def(date_dim, time_units, date_values)
     
     # variable definitions for precipitation and discharge
     precipitation_def <-
       ncvar_def(
-        name = "precipitation",
+        name = prec_dim,
         units = "mm/d",
         dim = list(timedim),
         longname = "mean precipitation [mm] per day",
@@ -188,7 +196,7 @@ save_timeseries_as_netcdf <- function(data, id_attr, date_attr, prec_attr, disch
       )
     discharge_def <-
       ncvar_def(
-        name = "discharge",
+        name = discharge_dim,
         units = "m^3/d",
         dim = list(timedim),
         longname = "daily discharge [m^3]",
@@ -206,5 +214,4 @@ save_timeseries_as_netcdf <- function(data, id_attr, date_attr, prec_attr, disch
     
     nc_close(ncdf_file)
   }
-  
 }

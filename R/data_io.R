@@ -149,16 +149,20 @@ create_regnie_file_list <- function(paths) {
   table
 }
 
-#' Creates multiple NetCDF files from, each one containing discharge and precipitation
+#' Creates multiple NetCDF files, each one containing discharge and precipitation
 #' timeseries data for a single catchment
 #'
 #' @param data tibble or data frame containing the timeseries data for several
 #' catchments
-#' @param id_attr name of the catchment ID attribute
-#' @param date_attr name of the dates attribute
-#' @param prec_attr name of the precipitation attribute
-#' @param discharge_attr name of the discharge attribute
 #' @param out_path path of directory to write the NetCDF files to
+#' @param id_col Name of the catchment ID column. IDs will be used as prefix
+#' for NetCDF files
+#' @param date_col name of the dates column
+#' @param date_dim name of the dates dimension to use
+#' @param prec_col name of the precipitation column
+#' @param prec_dim name of the precipitation dimension to use
+#' @param prec_col name of the discharge column
+#' @param prec_dim name of the discharge dimension to use
 #'
 #' @return void
 save_timeseries_as_netcdf <- function(data,
@@ -211,6 +215,82 @@ save_timeseries_as_netcdf <- function(data,
     # write out timeseries values and close file
     ncvar_put(ncdf_file, precipitation_def, prec_values)
     ncvar_put(ncdf_file, discharge_def, discharge_values)
+    
+    nc_close(ncdf_file)
+  }
+}
+
+#' Creates multiple NetCDF files, each one containing timeseries data variables
+#' for a single catchment
+#'
+#' @param data tibble or data frame containing the timeseries data for several
+#' catchments. All observation columns will be used as an variable for the
+#' resulting NetCDF file, taking into account those columns with col_type of units.
+#' @param out_path path of directory to write the NetCDF files to
+#' @param id_col Name of the catchment ID column. IDs will be used as prefix
+#' for NetCDF files
+#' @param date_col name of the dates column
+#' @param date_dim name of the dates dim to use
+#'
+#' @return void
+save_tibble_as_netcdf <- function(data,
+                                  out_path,
+                                  id_col,
+                                  date_col = "date",
+                                  date_dim = "date") {
+  
+  # iterate over single catchments in order to create a separate NetCDF file
+  # for each catchment
+  for (id in pull(distinct(data[id_col]), id_col)) {
+    single_basin_data <- data %>% filter(catchment_id == id)
+    
+    dates <- single_basin_data %>% pull(date)
+    # prec_values <- single_basin_data %>% pull(prec_col)
+    # discharge_values <- single_basin_data %>% pull(discharge_col)
+    
+    # define date as only dimension
+    time_units <- paste0("days since ", dates[1])
+    date_values <- as.numeric(dates[] - dates[1])
+    timedim <- ncdim_def(date_dim, time_units, date_values)
+    
+    col_types <- data %>% 
+      head %>% 
+      collect %>% 
+      lapply(class)
+    
+    # filter columns with column type units. Only those columns will
+    # be used as NetCDF variables
+    col_types <- col_types[col_types == "units"]
+    
+    var_list <- list()
+    
+    for(i in 1:length(col_types)) {
+      name <- names(col_types)[i]
+      unit <- data %>%
+        pull(name)%>%
+        units() %>%
+        as.character()
+      
+      values <- single_basin_data %>% pull(name)
+      var_def <- ncvar_def(
+        name = name,
+        units = unit,
+        dim = list(timedim),
+        prec = "float"
+      )
+      
+      var_list[[i]] <- list(values = values, def = var_def)
+    }
+    
+    # create NetCDF file
+    filename <- paste0(out_path, id, ".nc")
+    var_defs <- lapply(var_list,`[[`, c('def'))
+    ncdf_file <-
+      nc_create(filename, var_defs, force_v4 = TRUE)
+    
+    for(i in 1:length(var_list)) {
+      ncvar_put(ncdf_file, var_list[i][[1]]$def, var_list[i][[1]]$values)
+    }
     
     nc_close(ncdf_file)
   }

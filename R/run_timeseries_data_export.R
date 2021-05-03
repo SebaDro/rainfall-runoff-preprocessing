@@ -49,11 +49,3 @@ save_tibble_as_netcdf(
   date_col = "date",
   date_dim = "date"
 )
-
-name <- "./output/100050_test.nc"
-ncdf_file <- nc_open(name)
-
-ncvar_get(ncdf_file,"spec_discharge")
-ncvar_get(ncdf_file, "precipitation")
-
-nc_close(ncdf_file)

@@ -15,7 +15,7 @@ subbasin_file <- "./data/wv_subbasins.geojson"
 prec_data <- read_csv(prec_path, comment = "#") %>% 
   pivot_longer(!date, names_to = "catchment_id", values_to = "precipitation")
 
-disch_data <- read_csv(disch_path, comment = "#") %>% 
+disch_data <- read_csv(disch_path, comment = "#", col_types = cols(date = col_date(), .default=col_double())) %>% 
   pivot_longer(!date, names_to = "catchment_id", values_to = "discharge")
 
 timeseries_data <- disch_data %>% inner_join(prec_data, by = c("date", "catchment_id"))
@@ -38,8 +38,8 @@ timeseries_data$precipitation <- timeseries_data$precipitation %>% set_units(mm/
 # Calculate specific discharge by dividing discharge volume by catchment area
 # Subsequently convert specific discharge to mm per day
 timeseries_data <- timeseries_data %>%
-  mutate(spec_discharge = discharge / area)
-units(timeseries_data$spec_discharge) <-  make_units(mm/d)
+  mutate(discharge_spec = discharge / area)
+units(timeseries_data$discharge_spec) <-  make_units(mm/d)
 
 # Save the resulting tibble as NetCDF file
 save_tibble_as_netcdf(

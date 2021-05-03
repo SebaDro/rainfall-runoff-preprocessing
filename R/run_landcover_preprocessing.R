@@ -1,23 +1,32 @@
 source("./R/setup.R")
 
-# Parameters
+##### Path parameters #####
 output_path <- "./output/" # output path to save results
-res_file_suff <- "wv"
 subbasin_file <- "./data/wv_subbasins.geojson"
-
+class_config_file <- "./config/clc-codelist.csv"
 # TODO Download CORINE Land Cover from https://land.copernicus.eu/pan-european/corine-land-cover
 # and copy the annual GeoTIFF files to the './data' folder
-raster_paths <- c("./data/U2018_CLC2018_V2020_20u1.tif",
-                  "./data//U2018_CLC2012_V2020_20u1.tif",
-                  "./data//U2012_CLC2006_V2020_20u1.tif",
-                  "./data//U2006_CLC2000_V2020_20u1.tif",
-                  "./data//U2006_CLC2000_V2020_20u1.tif")
-subbasins <- load_catchments_as_sf(subbasin_file, "CAMELS_GB_catchment_boundaries")
-id_col <- "ID"
+raster_paths <- c("./data/clc1990.tif",
+                  "./data/clc2000.tif",
+                  "./data/clc2006.tif",
+                  "./data/clc2012.tif",
+                  "./data/clc2018.tif")
 
-class_config_file <- "./config/clc-codelist.csv"
-fill_missing_classes <- TRUE
+##### Execution parameters #####
+# Suffix for resulting files
+res_file_suff <- "wv"
+# Name of the ID column
+id_col <- "id"
+# Should land cover classes that are not present be kept? If so, missing classes
+# will be filled with zero percentage
+fill_missing_classes <- FALSE
 
+# Load codelist for CORINE Land Cover classes
+codelist <-
+  read_csv(class_config_file, col_types = cols(code = col_character()))
+codes <- codelist %>% pull(code)
+
+subbasins <- load_catchments_as_sf(subbasin_file)
 
 for (path in raster_paths) {
   cat(sprintf("\nStart processing raster file %s \n", path))
@@ -40,12 +49,7 @@ for (path in raster_paths) {
   )
   
   if (fill_missing_classes) {
-    # Load codelist for CORINE Land Cover classes and fill up result table with
-    # missing and frequency of zero
-    codelist <-
-      read_csv(class_config_file, col_types = cols(code = col_character()))
-    codes <- codelist %>% pull(code)
-    
+    # Fill up entries with missing classes and set frequency of zero
     res[setdiff(codes, names(res))] <- 0
   }
   

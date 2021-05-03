@@ -6,6 +6,8 @@ plot_landcover_frequency <- function(ezg, catchment, classes, type) {
     geom_sf(data = ezg) +
     geom_sf(data = catchment, aes(fill = name)) + 
     labs(title= "Location of the subbasin within the Wupper area")
+  classes$class <- classes$class %>%  as.character()
+  
   
   if (type == "pie") {
     p2 <- create_piechart(classes)  

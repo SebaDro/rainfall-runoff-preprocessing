@@ -41,7 +41,7 @@ catchment sums up to 1.
 ```{r, warning=false}
 # Calculate the land cover class frequencies for a selected catchment
 subbasin <- subbasins %>% filter(id == c(100060))
-res <- calculate_land_cover_frequency(subbasin, land_cover, TRUE)
+res <- calculate_land_cover_frequency(subbasin, land_cover, id_col="id", join=TRUE)
 
 # The relative class frequency for each catchment sums up to 1 should
 # be TRUE.

@@ -7,30 +7,32 @@
 
 source("./R/setup.R")
 
-# Parameters
+##### Path parameters #####
 output_path <- "./output/" # output path to save results
 subbasin_file <- "./data/wv_subbasins.geojson" 
 base_path <- "/path/to/regnie/" # must be absolute
+
+##### Execution parameters #####
 start_year <- 1990
 end_year <- 2020
 
 subbasins <- load_catchments_as_sf(subbasin_file) %>% st_transform(st_crs(4326))
-paths <- paste0(base_path, "ra", 1990:2020, "m")
+paths <- paste0(base_path, "ra", start_year:end_year, "m")
 
 for (path in paths) {
-  cat(sprintf("\nRead files from folder %s\n", path))
+  cat(sprintf("/nRead files from folder %s/n", path))
   files <- create_regnie_file_list(path)
   res <- calculate_precipitation_means_chunkwise(files, subbasins, 100)
   res <- res %>% rename(precipitation = mean)
   
   # Note: precipitation has unit 1/10 mm
-  write.csv(res, file = paste0(output_path,"precipitation", basename(path), ".csv"), row.names = FALSE)
-  cat(sprintf("\nReading files from folder %s done!\n", path))
+  write.csv(res, file = paste0(output_path,"precipitation_", basename(path), ".csv"), row.names = FALSE)
+  cat(sprintf("/nReading files from folder %s done!/n", path))
 }
 
 # After saving the precipitation means for each single year, we have to merge the
 # single files all together and save as a single file
-paths <- paste0(base_path, "precipitation_ra", 1990:2020, "m.csv")
+paths <- paste0(output_path, "precipitation_ra", start_year:end_year, "m.csv")
 res <- data.frame()
 for(path in paths) {
   data <- read_csv(path, col_types = cols(catchment_id = col_character()))

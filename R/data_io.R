@@ -86,6 +86,8 @@ load_regnie_as_stars <- function(files){
         )
 
         # Transpose raster matrix to match stars coordinate axis dimensions
+        # Rows are mapped to the first dimension, the x-coordinate.
+        # Columns are mapped to the second dimension, the y-coordinate.
         m <- t(as.matrix(values))
         res <- c(res, m)
         
